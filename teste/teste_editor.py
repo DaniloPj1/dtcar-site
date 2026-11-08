@@ -35,8 +35,16 @@ def falso(route):
         p = estado["publicacoes"]
         return j({"dados": p[-1]["dados"], "versao": len(p)} if p else {})
     if "/rest/v1/site_rascunho" in url:
-        if m == "GET": return j({"dados": estado["rascunho"]} if estado["rascunho"] is not None else None) if "vnd.pgrst.object" in (req.headers.get("accept") or "") else j([{"dados": estado["rascunho"]}] if estado["rascunho"] is not None else [])
-        estado["rascunho"] = json.loads(req.post_data)["dados"]; return j([])
+        if m == "GET":
+            if estado.get("erro_rascunho"): return j({"message": "JWT expired", "code": "PGRST301"}, 401)
+            linha = {"dados": estado["rascunho"], "atualizado_em": estado.get("rascunho_versao")} if estado["rascunho"] is not None else None
+            return j(linha) if "vnd.pgrst.object" in (req.headers.get("accept") or "") else j([linha] if linha else [])
+        c = json.loads(req.post_data)
+        if m == "POST":
+            if estado["rascunho"] is not None: return j({"code": "23505", "message": "duplicate key"}, 409)
+        elif "atualizado_em=eq." + (estado.get("rascunho_versao") or "").replace("+", "%2B").replace(":", "%3A") not in url and "atualizado_em=eq." + (estado.get("rascunho_versao") or "") not in url:
+            return j([])
+        estado["rascunho"] = c["dados"]; estado["rascunho_versao"] = c["atualizado_em"]; return j([{"atualizado_em": c["atualizado_em"]}])
     if "/rest/v1/site_publicacoes" in url:
         if m == "POST":
             c = json.loads(req.post_data); estado["publicacoes"].append({"id": len(estado["publicacoes"]) + 1, "publicado_em": "2026-11-08T13:00:00Z", **c}); return j([])
@@ -57,6 +65,10 @@ with sync_playwright() as p:
     # visitante sem nada publicado: conteúdo do HTML
     pg.goto(base); pg.wait_for_timeout(600)
     ok("Cuidado completo" in pg.text_content("h1"), "visitante vê o título padrão")
+    medir = "({h3: getComputedStyle(document.querySelector('[data-c=servico_01_titulo]')).fontSize, num: getComputedStyle(document.querySelector('[data-c=numero_1]')).fontSize, txt: getComputedStyle(document.querySelector('[data-c=abertura_texto]')).fontSize})"
+    tam0 = pg.evaluate(medir)
+    pg.set_viewport_size({"width": 1200, "height": 900}); pg.wait_for_timeout(400); pg.set_viewport_size({"width": 1280, "height": 900}); pg.wait_for_timeout(400)
+    ok(pg.evaluate(medir) == tam0, f"redimensionar não muda os tamanhos {tam0}")
 
     # login errado e certo
     pg.goto(base + "?editar"); pg.wait_for_selector(".ed-caixa")
@@ -68,6 +80,11 @@ with sync_playwright() as p:
     # editar título
     h1 = pg.locator("h1"); h1.click(); pg.keyboard.press("Control+A"); pg.keyboard.type("Oficina de confiança")
     pg.wait_for_timeout(2000); ok(estado["rascunho"] and estado["rascunho"]["t"].get("abertura_titulo") == "Oficina de confiança", "texto vai para o rascunho")
+    h1.click(); pg.keyboard.press("End"); pg.keyboard.type(" fim ")
+    pg.set_viewport_size({"width": 1240, "height": 900}); pg.wait_for_timeout(400); pg.keyboard.type("X"); pg.wait_for_timeout(1800)
+    ok(estado["rascunho"]["t"]["abertura_titulo"] == "Oficina de confiança fim X", "redimensionar não atrapalha a digitação: " + estado["rascunho"]["t"]["abertura_titulo"])
+    pg.set_viewport_size({"width": 1280, "height": 900})
+    h1.click(); pg.keyboard.press("Control+A"); pg.keyboard.type("Oficina de confiança"); pg.wait_for_timeout(1800)
     # tamanho
     h1.click(); pg.click(".ed-painel >> text=GG"); pg.wait_for_timeout(1800)
     ok(estado["rascunho"]["s"].get("abertura_titulo") == "gg", "tamanho GG gravado")
@@ -91,11 +108,15 @@ with sync_playwright() as p:
     # foto
     pg.locator('[data-img="fachada"]').click()
     with pg.expect_file_chooser() as fc: pg.click(".ed-painel >> text=Trocar foto")
-    fc.value.set_files(os.path.join(RAIZ, "media", "oleo.jpg")); pg.wait_for_timeout(2500)
+    fc.value.set_files(os.path.join(RAIZ, "media", "oleo.jpg"))
+    for _ in range(40):
+        if estado["rascunho"]["img"].get("fachada"): break
+        pg.wait_for_timeout(250)
     ok(len(estado["fotos"]) == 1 and estado["rascunho"]["img"].get("fachada", "").startswith(SB + "/storage/v1/object/public/site/fotos/"), "foto enviada e trocada")
     # desfazer
     pg.click(".ed-barra >> text=Desfazer"); pg.wait_for_timeout(1500)
     ok("fachada" not in estado["rascunho"]["img"], "desfazer volta a foto")
+    ok(pg.get_attribute('[data-img="fachada"]', "src") == "media/fachada.jpg", "desfazer volta a foto também na tela")
     if os.environ.get("FOTOS"): pg.locator('[data-c="servico_03_titulo"]').click(); pg.wait_for_timeout(200); pg.screenshot(path="/tmp/ed1.png")
     # publicar
     pg.click(".ed-barra button.ed-azul"); pg.fill(".ed-caixa input", "teste"); pg.click(".ed-caixa button.ed-azul"); pg.wait_for_timeout(800)
@@ -105,6 +126,7 @@ with sync_playwright() as p:
     v = b.new_context(viewport={"width": 390, "height": 800}); v.route(re.compile(r"^https://"), falso)
     vp = v.new_page(); vp.goto(base); vp.wait_for_timeout(800)
     ok(vp.text_content("h1").strip() == "Oficina de confiança", "visitante vê o título publicado")
+    ok(vp.evaluate("getComputedStyle(document.querySelector('[data-c=numero_1]')).fontSize") == "40px" and vp.evaluate("getComputedStyle(document.querySelector('[data-c=servico_01_titulo]')).fontSize") == "26px", "publicar não encolhe os outros textos")
     ok(not vp.is_visible('[data-secao="numeros"]'), "seção escondida some para o visitante")
     ok(vp.evaluate("parseFloat(getComputedStyle(document.querySelector('h1')).fontSize)") > 50, "GG vale no celular (relativo ao tamanho do celular)")
     ok(vp.evaluate("document.querySelector('[contenteditable]')") is None and vp.locator(".ed-barra").count() == 0, "visitante não vê o editor")
@@ -114,6 +136,17 @@ with sync_playwright() as p:
     ok(vp.locator("h1 img").count() == 0 and "<img" in vp.text_content("h1"), "texto entra como texto puro")
     ok(vp.get_attribute('[data-c="btn_topo"]', "href").startswith("https://wa.me/"), "link javascript: ignorado")
     ok("mal.com" not in (vp.get_attribute('[data-img="logo"]', "src") or ""), "foto de fora ignorada")
+    # erro ao ler o rascunho: editor não abre e não apaga
+    estado["rascunho"] = {"t": {"abertura_titulo": "RASCUNHO IMPORTANTE"}}; estado["erro_rascunho"] = True
+    e2 = b.new_context(); e2.route(re.compile(r"^https://"), falso); ep = e2.new_page(); ep.goto(base + "?editar"); ep.wait_for_selector(".ed-caixa")
+    ep.fill("input[type=email]", "danilo@x.com"); ep.fill("input[type=password]", "certa"); ep.click("text=Entrar"); ep.wait_for_timeout(1000)
+    ok(ep.locator(".ed-barra").count() == 0 and estado["rascunho"]["t"]["abertura_titulo"] == "RASCUNHO IMPORTANTE", "erro na leitura não apaga o rascunho")
+    estado["erro_rascunho"] = False
+    # outro aparelho mudou o rascunho: este para de salvar
+    ep.goto(base + "?editar"); ep.wait_for_selector(".ed-barra")
+    estado["rascunho_versao"] = "2099-01-01T00:00:00+00:00"
+    ep.locator("h1").click(); ep.keyboard.type("!"); ep.wait_for_timeout(2000)
+    ok(estado["rascunho"]["t"]["abertura_titulo"] == "RASCUNHO IMPORTANTE" and "outro aparelho" in ep.inner_text("body"), "não grava por cima de outro aparelho")
     # não administrador
     estado["admin"] = False
     n = b.new_context(); n.route(re.compile(r"^https://"), falso); npg = n.new_page(); npg.goto(base + "?editar"); npg.wait_for_selector(".ed-caixa")

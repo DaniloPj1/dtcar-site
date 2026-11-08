@@ -49,4 +49,4 @@ body.editando { padding-bottom: 76px; }
 .ed-aviso { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); z-index: 2147483003; background: #16191d; color: #fff;
   padding: 12px 18px; border-radius: 4px; font: 600 15px Barlow, Arial, sans-serif; max-width: calc(100vw - 32px); }
 .ed-aviso.ed-erro { background: #b42318; }
-@media (max-width: 640px) { .ed-barra { font-size: 14px; } .ed-barra .ed-btn { padding: 6px 10px; } body.editando { padding-bottom: 140px; } }
+@media (max-width: 640px) { .ed-secao-barra { position: static; margin: 0; border-radius: 0; border-width: 0 0 1px; } .ed-barra { font-size: 14px; } .ed-barra .ed-btn { padding: 6px 10px; } body.editando { padding-bottom: 140px; } }

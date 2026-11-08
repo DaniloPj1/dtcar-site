@@ -1,6 +1,7 @@
 // Site da DTCar — aplica a versão publicada (editada pelo Danilo no próprio site).
 // Sem resposta do servidor, o site fica com o conteúdo escrito no index.html.
 // Conteúdo publicado: { t: textos, s: tamanhos, img: fotos, a: links, ordem: seções, ocultas: seções/itens escondidos }.
+// Chave ausente = volta ao que está escrito no index.html (o original é guardado na primeira vez).
 (function () {
   "use strict";
   var CFG = {
@@ -10,39 +11,63 @@
   };
   var TAM = { p: 0.82, m: 1, g: 1.2, gg: 1.45 };
   var PASTA_FOTOS = CFG.url + "/storage/v1/object/public/site/";
+  var ORIG = new WeakMap();   // elemento → { texto, fs (font-size escrito no HTML), src, href }
+  var ordemOriginal = [];
 
   function linkOk(u) { return typeof u === "string" && u.length <= 2000 && /^(https:\/\/|mailto:|tel:|#)/i.test(u); }
   function imgOk(u) { return typeof u === "string" && (u.indexOf(PASTA_FOTOS) === 0 || /^media\/[\w.-]+$/.test(u)); }
-  function todos(attr, chave) { return document.querySelectorAll("[" + attr + '="' + chave.replace(/["\\]/g, "") + '"]'); }
+  function obj(o) { return o && typeof o === "object" && !Array.isArray(o) ? o : {}; }
+  function orig(el) { return ORIG.get(el); }
 
+  function guardarOriginais() {
+    document.querySelectorAll("[data-c],[data-img],[data-href]").forEach(function (el) {
+      if (ORIG.has(el)) return;
+      ORIG.set(el, { texto: el.textContent, fs: el.style.fontSize, src: el.getAttribute("src"), href: el.getAttribute("href") });
+    });
+    var main = document.getElementById("secoes");
+    if (main && !ordemOriginal.length) ordemOriginal = Array.prototype.map.call(main.querySelectorAll(":scope > [data-secao]"), function (s) { return s.getAttribute("data-secao"); });
+  }
+
+  // Tamanho relativo ao tamanho normal da tela (PC ou celular); a base é sempre o tamanho do HTML, nunca o já aumentado.
   function ajustarTamanho(el, nivel) {
-    el.style.fontSize = "";
+    var o = orig(el); if (!o) return;
+    el.style.fontSize = o.fs;
     var k = TAM[nivel];
     if (!k || k === 1) { el.removeAttribute("data-tam"); return; }
     el.setAttribute("data-tam", nivel);
     el.style.fontSize = (parseFloat(getComputedStyle(el).fontSize) * k).toFixed(1) + "px";
   }
+  function aplicarTamanhos(d) {
+    var s = obj(obj(d).s);
+    document.querySelectorAll("[data-c]").forEach(function (el) { ajustarTamanho(el, s[el.getAttribute("data-c")]); });
+  }
 
   function aplicar(d) {
-    d = d && typeof d === "object" ? d : {};
-    var t = d.t || {}, s = d.s || {}, img = d.img || {}, a = d.a || {};
-    Object.keys(t).forEach(function (k) {
-      if (typeof t[k] !== "string") return;
-      todos("data-c", k).forEach(function (el) { el.textContent = t[k]; });
+    d = obj(d);
+    guardarOriginais();
+    var t = obj(d.t), img = obj(d.img), a = obj(d.a);
+    var editando = document.activeElement;
+    document.querySelectorAll("[data-c]").forEach(function (el) {
+      var k = el.getAttribute("data-c"), o = orig(el);
+      var v = typeof t[k] === "string" ? t[k] : o.texto;
+      if (el !== editando && el.textContent !== v) el.textContent = v;
     });
-    document.querySelectorAll("[data-c]").forEach(function (el) { ajustarTamanho(el, s[el.getAttribute("data-c")]); });
-    Object.keys(img).forEach(function (k) {
-      if (!imgOk(img[k])) return;
-      todos("data-img", k).forEach(function (el) { el.src = img[k]; });
+    aplicarTamanhos(d);
+    document.querySelectorAll("[data-img]").forEach(function (el) {
+      var k = el.getAttribute("data-img"), v = imgOk(img[k]) ? img[k] : orig(el).src;
+      if (v && el.getAttribute("src") !== v) el.setAttribute("src", v);
     });
-    Object.keys(a).forEach(function (k) {
-      if (!linkOk(a[k])) return;
-      todos("data-href", k).forEach(function (el) { el.href = a[k]; });
+    document.querySelectorAll("[data-href]").forEach(function (el) {
+      var k = el.getAttribute("data-href"), v = linkOk(a[k]) ? a[k] : orig(el).href;
+      if (v && el.getAttribute("href") !== v) el.setAttribute("href", v);
     });
     var main = document.getElementById("secoes");
-    if (main && Array.isArray(d.ordem)) {
-      d.ordem.forEach(function (id) {
-        var sec = main.querySelector(':scope > [data-secao="' + String(id).replace(/["\\]/g, "") + '"]');
+    if (main) {
+      var ordem = (Array.isArray(d.ordem) ? d.ordem : []).filter(function (id) { return ordemOriginal.indexOf(id) >= 0; });
+      ordemOriginal.forEach(function (id) { if (ordem.indexOf(id) < 0) ordem.push(id); });   // seção nova no HTML entra no fim
+      ordem.forEach(function (id) {
+        var sec = null;
+        Array.prototype.some.call(main.children, function (c) { if (c.getAttribute("data-secao") === id) { sec = c; return true; } return false; });
         if (sec) main.appendChild(sec);
       });
     }
@@ -54,11 +79,11 @@
     window.DTSite.atual = d;
   }
 
-  // Tamanhos são relativos ao tamanho normal da tela (PC ou celular): refaz ao girar ou redimensionar.
+  // Girar a tela ou a barra do navegador do celular aparecer: refaz só os tamanhos (nunca os textos).
   var espera;
   window.addEventListener("resize", function () {
     clearTimeout(espera);
-    espera = setTimeout(function () { aplicar(window.DTSite.atual); }, 200);
+    espera = setTimeout(function () { aplicarTamanhos(window.DTSite.atual); }, 200);
   });
 
   function carregarPublicado() {
@@ -71,20 +96,20 @@
       signal: ctrl ? ctrl.signal : undefined
     }).then(function (r) { return r.ok ? r.json() : {}; })
       .then(function (j) { if (j && j.dados) aplicar(j.dados); })
-      .catch(function () { /* sem conexão: fica o conteúdo do HTML */ })
+      .catch(function () { /* sem conexão ou resposta estranha: fica o conteúdo do HTML */ })
       .then(function () { clearTimeout(limite); });
   }
 
   function carregarEditor() {
     var sc = document.createElement("script");
-    sc.src = "js/editor.js?v=" + (window.DTSite.versao || "1");
+    sc.src = "js/editor.js?v=" + window.DTSite.versao;
     document.body.appendChild(sc);
   }
 
-  window.DTSite = { CFG: CFG, TAM: TAM, aplicar: aplicar, linkOk: linkOk, imgOk: imgOk, atual: {}, versao: "1" };
+  window.DTSite = { CFG: CFG, TAM: TAM, aplicar: aplicar, aplicarTamanhos: aplicarTamanhos, linkOk: linkOk, imgOk: imgOk, atual: {}, versao: "2" };
+  guardarOriginais();
 
   var q = new URLSearchParams(location.search);
-  var editar = q.has("editar") || q.has("previa");
-  if (editar) carregarEditor();
+  if (q.has("editar") || q.has("previa")) carregarEditor();
   else carregarPublicado();
 })();

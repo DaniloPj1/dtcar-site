@@ -7,6 +7,8 @@
   var q = new URLSearchParams(location.search);
   var MODO_PREVIA = q.has("previa") && !q.has("editar");
   var sb, dados = {}, desfazer = [], salvarEspera, painel, alvo, barra, situacao, base = null, ultimoPasso = 0;
+  var versaoRascunho = null;   // atualizado_em lido do banco: grava só se ninguém mudou no meio (outro aparelho)
+  var travado = false;          // rascunho mudado em outro aparelho: para de salvar até recarregar
 
   function el(tag, attrs, filhos) {
     var e = document.createElement(tag);
@@ -81,17 +83,32 @@
   }
   function salvarRascunho() {
     clearTimeout(salvarEspera);
-    return sb.from("site_rascunho").upsert({ id: 1, dados: dados, atualizado_em: new Date().toISOString() }).then(function (r) {
-      if (r.error) { marcar("Rascunho NÃO salvo"); aviso("Não salvou o rascunho: " + r.error.message, true); return false; }
+    if (travado) { avisoOutroAparelho(); return Promise.resolve(false); }
+    var agora = new Date().toISOString();
+    var pedido = versaoRascunho
+      ? sb.from("site_rascunho").update({ dados: dados, atualizado_em: agora }).eq("id", 1).eq("atualizado_em", versaoRascunho).select("atualizado_em")
+      : sb.from("site_rascunho").insert({ id: 1, dados: dados, atualizado_em: agora }).select("atualizado_em");
+    return pedido.then(function (r) {
+      if (r.error && r.error.code !== "23505") { marcar("Rascunho NÃO salvo"); aviso("Não salvou o rascunho: " + r.error.message, true); return false; }
+      if (r.error || !r.data || !r.data.length) { travado = true; avisoOutroAparelho(); return false; }
+      versaoRascunho = r.data[0].atualizado_em;
       marcar("Rascunho salvo às " + hora()); return true;
     });
+  }
+  function avisoOutroAparelho() {
+    marcar("Rascunho NÃO salvo");
+    aviso("O rascunho foi mudado em outro aparelho. Recarregue a página para pegar a versão nova (o que foi feito aqui depois disso não foi salvo).", true);
   }
   function marcar(t) { if (situacao) situacao.textContent = t; }
 
   function lerDaPagina() {
     // Ordem atual das seções (para o "subir/descer" funcionar mesmo sem nada salvo).
+    // Ordem das seções sempre completa: tira o que não existe mais e põe no fim seção nova do HTML.
     var main = document.getElementById("secoes");
-    if (main && !Array.isArray(dados.ordem)) dados.ordem = Array.prototype.map.call(main.querySelectorAll(":scope > [data-secao]"), function (s) { return s.getAttribute("data-secao"); });
+    var existentes = main ? Array.prototype.map.call(main.querySelectorAll(":scope > [data-secao]"), function (s) { return s.getAttribute("data-secao"); }) : [];
+    var ordem = (Array.isArray(dados.ordem) ? dados.ordem : existentes).filter(function (id, i, l) { return existentes.indexOf(id) >= 0 && l.indexOf(id) === i; });
+    existentes.forEach(function (id) { if (ordem.indexOf(id) < 0) ordem.push(id); });
+    dados.ordem = ordem;
     ["t", "s", "img", "a"].forEach(function (k) { if (!dados[k] || typeof dados[k] !== "object") dados[k] = {}; });
     if (!Array.isArray(dados.ocultas)) dados.ocultas = [];
   }
@@ -262,11 +279,12 @@
     var obs = campo("O que mudou (opcional)", { type: "text", maxlength: "200" });
     var c = caixa("Publicar o site", el("div", {}, [el("p", { texto: "O que está na tela vai para o ar para todos os visitantes. A versão anterior fica guardada no histórico." }), obs.wrap]), [
       botao("Cancelar", function () { c.fechar(); }),
-      botao("Publicar", function () {
+      botao("Publicar", function (ev) {
+        var b = ev.currentTarget; if (b.disabled) return; b.disabled = true;
         salvarRascunho().then(function (ok) {
-          if (!ok) return;
+          if (!ok) { b.disabled = false; return; }
           return sb.from("site_publicacoes").insert({ dados: dados, observacao: obs.input.value.trim().slice(0, 200) }).then(function (r) {
-            if (r.error) { aviso("Não publicou: " + r.error.message, true); return; }
+            if (r.error) { b.disabled = false; aviso("Não publicou: " + r.error.message, true); return; }
             c.fechar(); marcar("Publicado às " + hora()); aviso("Site publicado.");
           });
         });
@@ -331,7 +349,8 @@
   // ---------- início ----------
   function iniciar() {
     return carregarScript("vendor/supabase.js").then(function () {
-      sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "dtcar-site-login" } });
+      // Login guardado só nesta aba (sessionStorage): fechou a aba, saiu. O login de administrador vale para o DTCar Gestão inteiro.
+      sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: "dtcar-site-login", storage: window.sessionStorage } });
       return sb.auth.getSession();
     }).then(function (r) {
       var sessao = r.data && r.data.session;
@@ -344,11 +363,16 @@
       carregarCss("css/editor.css?v=" + S.versao);
       return (sessao ? Promise.resolve(sessao) : telaLogin()).then(function () { return sb.rpc("e_admin"); }).then(function (adm) {
         if (adm.error || adm.data !== true) { aviso("Este login não é de administrador do DTCar Gestão.", true); return sb.auth.signOut({ scope: "local" }).then(function () { setTimeout(function () { location.href = location.pathname; }, 2500); }); }
-        return sb.from("site_rascunho").select("dados").maybeSingle().then(function (x) {
+        return sb.from("site_rascunho").select("dados,atualizado_em").maybeSingle().then(function (x) {
+          // Erro na leitura NUNCA cai para a versão publicada: o salvamento automático apagaria o rascunho de verdade.
+          if (x.error) throw new Error("não deu para ler o rascunho (" + x.error.message + "). Recarregue a página.");
+          if (x.data) versaoRascunho = x.data.atualizado_em;
           if (x.data && x.data.dados && Object.keys(x.data.dados).length) return x.data.dados;
-          return sb.rpc("site_conteudo_publicado").then(function (p) { return (p.data && p.data.dados) || {}; });
+          return sb.rpc("site_conteudo_publicado").then(function (p) {
+            if (p.error) throw new Error("não deu para ler a versão publicada (" + p.error.message + "). Recarregue a página.");
+            return (p.data && p.data.dados) || {};
+          });
         }).then(function (d) {
-          if (d && d.error) throw d.error;
           dados = copia(d); lerDaPagina(); base = copia(dados);
           document.body.classList.add("editando");
           reaplicar(); prepararTextos(); montarBarra();
@@ -367,5 +391,8 @@
   function carregarPublicadoSemEditor() {
     return sb.rpc("site_conteudo_publicado").then(function (p) { if (p.data && p.data.dados) S.aplicar(p.data.dados); });
   }
+  // Editor nunca abre dentro de página de outro site; a prévia do celular (mesmo site) pode.
+  if (!MODO_PREVIA && window.top !== window.self) return;
+  if (MODO_PREVIA && window.top !== window.self) { try { if (window.top.location.origin !== location.origin) return; } catch (x) { return; } }
   iniciar();
 })();
