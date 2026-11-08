@@ -86,6 +86,7 @@
       if (ocultas.indexOf(id) >= 0) el.setAttribute("data-oculto", ""); else el.removeAttribute("data-oculto");
     });
     window.DTSite.atual = d;
+    montarPontos();
   }
 
   // Girar a tela ou a barra do navegador do celular aparecer: refaz só os tamanhos (nunca os textos).
@@ -115,8 +116,37 @@
     document.body.appendChild(sc);
   }
 
-  window.DTSite = { CFG: CFG, TAM: TAM, aplicar: aplicar, aplicarTamanhos: aplicarTamanhos, linkOk: linkOk, imgOk: imgOk, atual: {}, versao: "3" };
+  // Celular: pontinhos embaixo de cada carrossel (mostram onde está e levam ao cartão). Itens escondidos não contam.
+  function montarPontos() {
+    document.querySelectorAll(".carrossel").forEach(function (car) {
+      var pts = car.nextElementSibling && car.nextElementSibling.classList.contains("pontos") ? car.nextElementSibling : null;
+      if (!pts) {
+        pts = document.createElement("div"); pts.className = "pontos"; pts.setAttribute("aria-label", "Posição no carrossel");
+        car.parentNode.insertBefore(pts, car.nextSibling);
+        car.addEventListener("scroll", function () { marcarPonto(car, pts); }, { passive: true });
+      }
+      var editando = document.body.classList.contains("editando");
+      var itens = Array.prototype.filter.call(car.children, function (c) { return editando || !c.hasAttribute("data-oculto"); });
+      pts.textContent = "";
+      itens.forEach(function (item, i) {
+        var b = document.createElement("button");
+        b.type = "button"; b.setAttribute("aria-label", "Ir para o cartão " + (i + 1) + " de " + itens.length);
+        b.addEventListener("click", function () { car.scrollTo({ left: item.offsetLeft - car.offsetLeft - parseFloat(getComputedStyle(car).paddingLeft || 0), behavior: "smooth" }); });
+        pts.appendChild(b);
+      });
+      marcarPonto(car, pts);
+    });
+  }
+  function marcarPonto(car, pts) {
+    var bs = pts.children; if (!bs.length) return;
+    var max = car.scrollWidth - car.clientWidth;
+    var i = max <= 4 ? 0 : (car.scrollLeft >= max - 4 ? bs.length - 1 : Math.round(car.scrollLeft / max * (bs.length - 1)));
+    Array.prototype.forEach.call(bs, function (b, j) { b.setAttribute("aria-current", j === i ? "true" : "false"); });
+  }
+
+  window.DTSite = { CFG: CFG, TAM: TAM, aplicar: aplicar, aplicarTamanhos: aplicarTamanhos, linkOk: linkOk, imgOk: imgOk, atual: {}, versao: "4" };
   guardarOriginais();
+  montarPontos();
 
   var q = new URLSearchParams(location.search);
   if (q.has("editar") || q.has("previa")) carregarEditor();
