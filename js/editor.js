@@ -109,7 +109,7 @@
     var ordem = (Array.isArray(dados.ordem) ? dados.ordem : existentes).filter(function (id, i, l) { return existentes.indexOf(id) >= 0 && l.indexOf(id) === i; });
     existentes.forEach(function (id) { if (ordem.indexOf(id) < 0) ordem.push(id); });
     dados.ordem = ordem;
-    ["t", "s", "img", "a"].forEach(function (k) { if (!dados[k] || typeof dados[k] !== "object") dados[k] = {}; });
+    ["t", "s", "img", "enq", "a"].forEach(function (k) { if (!dados[k] || typeof dados[k] !== "object") dados[k] = {}; });
     if (!Array.isArray(dados.ocultas)) dados.ocultas = [];
   }
   function reaplicar() { S.aplicar(dados); prepararSecoes(); }
@@ -170,7 +170,10 @@
         }, atual === n ? "ed-on" : ""));
       });
     }
-    if (img) painel.appendChild(botao("Trocar foto", function () { trocarFoto(img); }, "ed-azul"));
+    if (img) {
+      painel.appendChild(botao("Trocar foto", function () { trocarFoto(img); }, "ed-azul"));
+      painel.appendChild(botao("Enquadrar", function () { enquadrar(img); }));
+    }
     if (link) painel.appendChild(botao(link.getAttribute("data-href") === "zap" ? "WhatsApp do botão" : "Link", function () { editarLink(link); }));
     if (bloco) {
       var id = bloco.getAttribute("data-bloco"), oculto = dados.ocultas.indexOf(id) >= 0;
@@ -215,6 +218,37 @@
         if (!S.linkOk(v)) { aviso("O link precisa começar com https://, mailto: ou tel:", true); return; }
         dados.a[k] = v; c2.fechar(); registrarMudanca(); reaplicar();
       }, "ed-azul")]);
+  }
+
+  // Enquadrar: escolhe a parte da foto que aparece quando ela é cortada, ou mostra a foto inteira. A tela muda na hora.
+  function enquadrar(img) {
+    var k = img.getAttribute("data-img");
+    var antes = dados.enq[k] ? copia(dados.enq[k]) : null;
+    var pos = (getComputedStyle(img).objectPosition || "50% 50%").split(" ");
+    var atual = antes || { x: Math.round(parseFloat(pos[0])) || 50, y: Math.round(parseFloat(pos[1])) || 50, inteira: false };
+    function deslizar(rotulo, valor) {
+      return campo(rotulo, { type: "range", min: "0", max: "100", step: "1", value: String(valor) });
+    }
+    var hx = deslizar("Horizontal (esquerda ← → direita)", atual.x);
+    var vy = deslizar("Vertical (em cima ↑ ↓ embaixo)", atual.y);
+    var inteiraId = "ed-int-" + Math.random().toString(36).slice(2);
+    var inteira = el("input", { type: "checkbox", id: inteiraId });
+    inteira.checked = atual.inteira === true;
+    var linhaInteira = el("div", { class: "ed-check" }, [inteira, el("label", { for: inteiraId, texto: "Mostrar a foto inteira, sem cortar" })]);
+    function ver() {
+      dados.enq[k] = { x: Number(hx.input.value), y: Number(vy.input.value), inteira: inteira.checked };
+      S.aplicar(dados);
+    }
+    [hx.input, vy.input].forEach(function (i) { i.addEventListener("input", ver); });
+    inteira.addEventListener("change", ver);
+    var c = caixa("Enquadrar a foto", el("div", {}, [
+      el("p", { texto: "Arraste para escolher a parte da foto que aparece. A foto atrás muda na hora. No celular a foto pode cortar diferente: confira em \"Ver no celular\"." }),
+      hx.wrap, vy.wrap, linhaInteira]), [
+      botao("Voltar ao original", function () { delete dados.enq[k]; c.fechar(); registrarMudanca(); reaplicar(); }),
+      botao("Cancelar", function () { if (antes) dados.enq[k] = antes; else delete dados.enq[k]; c.fechar(); S.aplicar(dados); }),
+      botao("Aplicar", function () { ver(); c.fechar(); registrarMudanca(); }, "ed-azul")]);
+    c.box.parentNode.classList.add("ed-fundo-claro");
+    img.scrollIntoView({ block: "center" });
   }
 
   function reduzir(arquivo) {
