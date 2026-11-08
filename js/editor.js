@@ -106,9 +106,7 @@
     // Ordem das seções sempre completa: tira o que não existe mais e põe no fim seção nova do HTML.
     var main = document.getElementById("secoes");
     var existentes = main ? Array.prototype.map.call(main.querySelectorAll(":scope > [data-secao]"), function (s) { return s.getAttribute("data-secao"); }) : [];
-    var ordem = (Array.isArray(dados.ordem) ? dados.ordem : existentes).filter(function (id, i, l) { return existentes.indexOf(id) >= 0 && l.indexOf(id) === i; });
-    existentes.forEach(function (id) { if (ordem.indexOf(id) < 0) ordem.push(id); });
-    dados.ordem = ordem;
+    dados.ordem = S.completarOrdem(Array.isArray(dados.ordem) ? dados.ordem.slice() : existentes.slice(), existentes);
     ["t", "s", "img", "enq", "a"].forEach(function (k) { if (!dados[k] || typeof dados[k] !== "object") dados[k] = {}; });
     if (!Array.isArray(dados.ocultas)) dados.ocultas = [];
   }
