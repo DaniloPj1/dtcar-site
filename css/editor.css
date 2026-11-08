@@ -1,0 +1,52 @@
+/* Editor do site (só aparece para administrador com "?editar"). Cores da DTCar, sem efeitos. */
+body.editando { padding-bottom: 76px; }
+.editando [data-c] { outline: 1px dashed rgba(23, 79, 148, .45); outline-offset: 2px; cursor: text; }
+.editando [data-c]:hover, .editando [data-c]:focus { outline: 2px solid #174f94; }
+.editando [data-img] { outline: 2px dashed rgba(23, 79, 148, .6); outline-offset: -2px; cursor: pointer; }
+.editando .ed-alvo { outline: 3px solid #174f94 !important; }
+.editando [data-oculto] { opacity: .35; }
+.editando [data-oculto]::before { content: "Escondido no site"; display: block; font: 600 13px Barlow, Arial, sans-serif; color: #16191d; background: #ffd27a; padding: 4px 10px; }
+
+.ed-barra { position: fixed; left: 0; right: 0; bottom: 0; z-index: 2147483000; background: #16191d; color: #fff; border-top: 3px solid #174f94;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 16px; font: 15px Barlow, Arial, sans-serif; }
+.ed-barra b { font-family: "Barlow Condensed", Arial, sans-serif; text-transform: uppercase; letter-spacing: .06em; }
+.ed-situacao { color: #c9ced6; margin-right: auto; font-size: 14px; }
+
+.ed-btn { font: 600 15px Barlow, Arial, sans-serif; min-height: 40px; padding: 8px 14px; border-radius: 4px; border: 1px solid #c9ced6; background: #fff; color: #16191d; cursor: pointer; }
+.ed-btn:hover { background: #eceef0; }
+.ed-btn:focus-visible { outline: 3px solid #174f94; outline-offset: 2px; }
+.ed-btn.ed-azul { background: #174f94; border-color: #174f94; color: #fff; }
+.ed-btn.ed-azul:hover { background: #123e75; }
+.ed-btn.ed-vermelho { background: #b42318; border-color: #b42318; color: #fff; }
+.ed-btn.ed-on { background: #16191d; border-color: #16191d; color: #fff; }
+
+.ed-painel { position: absolute; z-index: 2147483001; background: #fff; border: 1px solid #c9ced6; border-radius: 4px; padding: 8px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(0, 0, 0, .18); max-width: calc(100vw - 16px); }
+.ed-painel .ed-btn { min-height: 36px; padding: 6px 10px; font-size: 14px; }
+.ed-rot { font: 600 13px Barlow, Arial, sans-serif; color: #4a525c; text-transform: uppercase; letter-spacing: .06em; margin-right: 2px; }
+
+.ed-secao-barra { position: absolute; top: 8px; right: 8px; z-index: 2147482999; background: #fff; border: 1px solid #c9ced6; border-radius: 4px;
+  padding: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ed-secao-barra .ed-btn { min-height: 36px; padding: 6px 10px; font-size: 14px; }
+
+.ed-fundo { position: fixed; inset: 0; z-index: 2147483002; background: rgba(11, 14, 18, .6); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.ed-caixa { background: #fff; color: #16191d; border-radius: 4px; padding: 24px; width: 100%; max-width: 480px; max-height: calc(100vh - 32px); overflow: auto; font: 16px Barlow, Arial, sans-serif; }
+.ed-caixa.ed-caixa-larga { max-width: 460px; }
+.ed-caixa h2 { margin: 0 0 12px; font: 700 26px "Barlow Condensed", Arial, sans-serif; text-transform: uppercase; }
+.ed-caixa p { margin: 0 0 14px; line-height: 1.5; color: #333a42; }
+.ed-botoes { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.ed-campo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.ed-campo label { font-weight: 600; font-size: 15px; }
+.ed-campo input, .ed-campo textarea { font: 16px Barlow, Arial, sans-serif; padding: 10px 12px; border: 1px solid #9aa1aa; border-radius: 4px; min-height: 44px; }
+.ed-campo input:focus, .ed-campo textarea:focus { outline: 3px solid #174f94; outline-offset: 1px; }
+.ed-msg { min-height: 1.4em; color: #b42318; font-weight: 600; }
+.ed-lista { display: flex; flex-direction: column; gap: 8px; }
+.ed-item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; border: 1px solid #d6dae0; border-radius: 4px; padding: 10px 12px; }
+.ed-item div { display: flex; flex-direction: column; gap: 2px; }
+.ed-item span { color: #4a525c; font-size: 14px; }
+.ed-celular { display: block; width: 390px; max-width: 100%; height: min(760px, calc(100vh - 200px)); border: 1px solid #9aa1aa; border-radius: 4px; margin: 0 auto; }
+
+.ed-aviso { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); z-index: 2147483003; background: #16191d; color: #fff;
+  padding: 12px 18px; border-radius: 4px; font: 600 15px Barlow, Arial, sans-serif; max-width: calc(100vw - 32px); }
+.ed-aviso.ed-erro { background: #b42318; }
+@media (max-width: 640px) { .ed-barra { font-size: 14px; } .ed-barra .ed-btn { padding: 6px 10px; } body.editando { padding-bottom: 140px; } }
