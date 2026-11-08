@@ -65,6 +65,7 @@ with sync_playwright() as p:
     # visitante sem nada publicado: conteúdo do HTML
     pg.goto(base); pg.wait_for_timeout(600)
     ok("Cuidado completo" in pg.text_content("h1"), "visitante vê o título padrão")
+    ok(pg.evaluate("[...document.querySelectorAll('.carrossel')].every(c => getComputedStyle(c).display === 'grid')") and not pg.is_visible(".zap-flutuante"), "PC: sem carrossel e sem botão flutuante")
     medir = "({h3: getComputedStyle(document.querySelector('[data-c=servico_01_titulo]')).fontSize, num: getComputedStyle(document.querySelector('[data-c=numero_1]')).fontSize, txt: getComputedStyle(document.querySelector('[data-c=abertura_texto]')).fontSize})"
     tam0 = pg.evaluate(medir)
     pg.set_viewport_size({"width": 1200, "height": 900}); pg.wait_for_timeout(400); pg.set_viewport_size({"width": 1280, "height": 900}); pg.wait_for_timeout(400)
@@ -141,6 +142,9 @@ with sync_playwright() as p:
     ok(vp.text_content("h1").strip() == "Oficina de confiança", "visitante vê o título publicado")
     ok(vp.evaluate("getComputedStyle(document.querySelector('[data-c=numero_1]')).fontSize") == "40px" and vp.evaluate("getComputedStyle(document.querySelector('[data-c=servico_01_titulo]')).fontSize") == "26px", "publicar não encolhe os outros textos")
     ok(not vp.is_visible('[data-secao="numeros"]'), "seção escondida some para o visitante")
+    ok(vp.evaluate("[...document.querySelectorAll('.carrossel')].every(c => getComputedStyle(c).display === 'flex' && getComputedStyle(c).overflowX === 'auto')"), "celular: grupos em carrossel")
+    ok(vp.evaluate("document.documentElement.scrollWidth") <= 390, "celular: página não rola para o lado")
+    ok(vp.is_visible(".zap-flutuante"), "celular: botão do WhatsApp flutuante")
     ok(vp.evaluate("[document.querySelector('[data-img=abertura]').style.objectPosition, document.querySelector('[data-img=abertura]').style.maxHeight]") == ["30% 80%", "none"], "visitante vê o enquadramento")
     ok(vp.evaluate("parseFloat(getComputedStyle(document.querySelector('h1')).fontSize)") > 50, "GG vale no celular (relativo ao tamanho do celular)")
     ok(vp.evaluate("document.querySelector('[contenteditable]')") is None and vp.locator(".ed-barra").count() == 0, "visitante não vê o editor")

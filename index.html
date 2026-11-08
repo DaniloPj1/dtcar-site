@@ -32,7 +32,57 @@ h1{font-size:56px}h2{font-size:44px;line-height:1.05}
 section{scroll-margin-top:20px}
 body:not(.editando) [data-oculto]{display:none !important}
 [data-c]{white-space:pre-line}
-@media (max-width:640px){h1{font-size:40px}h2{font-size:34px}}
+@media (max-width:640px){
+/* Celular: grupos de cartões em carrossel (deslizar para o lado). O PC não muda. */
+.carrossel{display:flex !important;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.carrossel::-webkit-scrollbar{display:none}
+.carrossel>*{flex:0 0 84%;scroll-snap-align:start;min-width:0}
+.carrossel-servicos{gap:12px !important;background:transparent !important;border:0 !important}
+.carrossel-servicos>*{border:1px solid var(--linha)}
+.carrossel-etapas{gap:16px !important}
+.carrossel-etapas>*{background:#fff}
+.carrossel-numeros{gap:16px !important;scroll-padding-left:24px}
+.carrossel-destaques{gap:16px !important;scroll-padding-left:24px;padding-bottom:12px !important}
+.carrossel-destaques>*:last-child{margin-right:24px}
+#secoes>section[data-secao="destaques"]>.wrap{padding-bottom:12px !important}
+#secoes>section[data-secao="destaques"] .pontos{padding-bottom:36px}
+.carrossel-numeros>*{flex-basis:44%}
+.carrossel-numeros>*:last-child{margin-right:24px}
+.pontos{display:flex;justify-content:center;gap:8px;margin-top:14px}
+.pontos button{width:28px;height:28px;padding:0;border:0;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.pontos button::before{content:"";width:8px;height:8px;border-radius:50%;background:#9aa1aa}
+.pontos button[aria-current="true"]::before{background:var(--azul);width:20px;border-radius:4px}
+}
+.pontos{display:none}
+@media (max-width:640px){.pontos{display:flex}}
+@media (max-width:640px){
+/* Celular mais enxuto (o PC não muda): menos espaço vazio, títulos menores, botões na largura toda. */
+h1{font-size:38px}h2{font-size:30px}
+.nav a:not(.btn){display:none}
+header .wrap{padding-top:10px !important;padding-bottom:10px !important;flex-wrap:nowrap !important}
+header img{height:40px !important}
+header .btn{display:none !important}
+#secoes>section>.wrap{padding-top:48px !important;padding-bottom:48px !important}
+#secoes>section[data-secao="numeros"]>.wrap{padding-top:20px !important;padding-bottom:12px !important}
+#secoes h2{margin-bottom:22px !important}
+.faixa-abertura .wrap{padding-top:28px !important;padding-bottom:32px !important;gap:20px !important}
+.faixa-abertura .botoes{width:100%;display:grid !important;grid-template-columns:1fr 1fr}
+.faixa-abertura .btn{justify-content:center;padding-left:10px;padding-right:10px}
+#secoes p{font-size:16px}
+.serv>div:first-child{height:130px !important}
+.serv>div:last-child{padding:18px 20px 22px !important}
+.carrossel-etapas>li{padding:16px 16px 18px !important;border:1px solid var(--linha);border-top:4px solid var(--preto)}
+#contato dl{grid-template-columns:1fr !important;gap:2px !important;font-size:17px !important}
+#contato dd{margin-bottom:12px !important}
+#contato .btn{flex:1 1 100%;justify-content:center}
+#mapa{height:260px !important;flex-basis:100% !important}
+footer .wrap{flex-direction:column;align-items:flex-start !important}
+body{padding-bottom:76px}
+.zap-flutuante{display:flex !important}
+body.editando .zap-flutuante{display:none !important}
+}
+.zap-flutuante{display:none;position:fixed;right:16px;bottom:16px;z-index:50;align-items:center;gap:8px;min-height:52px;padding:0 20px;border-radius:26px;background:#1f8f4e;color:#fff;font-weight:700;font-size:16px;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.zap-flutuante:hover{background:#18733e;color:#fff}
 </style>
 </head>
 <body>
@@ -54,14 +104,14 @@ body:not(.editando) [data-oculto]{display:none !important}
 <img data-img="abertura" src="media/abertura-foto.jpg" alt="Carro de frente com faróis acesos e a marca DTCar Centro Automotivo" style="display:block;width:100%;height:auto;max-height:640px;object-fit:cover;object-position:center 45%">
 </section>
 
-<section style="background:var(--preto);color:#fff">
+<section class="faixa-abertura" style="background:var(--preto);color:#fff">
 <div class="wrap" style="padding-top:48px;padding-bottom:56px;display:flex;flex-wrap:wrap;gap:32px 64px;align-items:flex-end;justify-content:space-between">
 <div style="flex:1 1 520px;min-width:0">
 <p class="rotulo" data-c="abertura_rotulo" style="color:#9fb4d3;margin-bottom:12px">Colatina · Espírito Santo</p>
 <h1 data-c="abertura_titulo" style="line-height:1.02">Cuidado completo para o seu carro</h1>
 <p data-c="abertura_texto" style="margin:18px 0 0;font-size:19px;line-height:1.55;color:#c9ced6;max-width:620px">Orçamento detalhado antes de qualquer serviço, aprovação pelo WhatsApp e acompanhamento até a entrega.</p>
 </div>
-<div style="display:flex;flex-wrap:wrap;gap:12px">
+<div class="botoes" style="display:flex;flex-wrap:wrap;gap:12px">
 <a class="btn btn-azul" href="https://wa.me/5527992470140?text=Ol%C3%A1%2C%20DTCar%21%20Vim%20pelo%20site%20e%20gostaria%20de%20um%20or%C3%A7amento.%0A%0AVe%C3%ADculo%20%28modelo%20e%20ano%29%3A%20%0APlaca%3A%20%0AO%20que%20est%C3%A1%20acontecendo%3A%20" data-href="zap" data-c="abertura_btn1">Pedir orçamento</a>
 <a class="btn btn-claro" href="#contato" data-c="abertura_btn2">Como chegar</a>
 </div>
@@ -70,7 +120,7 @@ body:not(.editando) [data-oculto]{display:none !important}
 
 <main id="secoes">
 <section data-secao="numeros" style="background:#fff;border-bottom:1px solid var(--linha)">
-<div class="wrap" style="padding-top:28px;padding-bottom:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px">
+<div class="wrap carrossel carrossel-numeros" aria-label="Números da oficina" style="padding-top:28px;padding-bottom:28px;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px">
 <div data-bloco="numero_1"><p class="cond" data-c="numero_1" style="margin:0;font-weight:700;font-size:40px;color:var(--azul)">+1.900</p><p data-c="numero_1_texto" style="margin:2px 0 0;font-size:16px;color:var(--texto2)">ordens de serviço realizadas</p></div>
 <div data-bloco="numero_2"><p class="cond" data-c="numero_2" style="margin:0;font-weight:700;font-size:40px;color:var(--azul)">+500</p><p data-c="numero_2_texto" style="margin:2px 0 0;font-size:16px;color:var(--texto2)">clientes atendidos</p></div>
 <div data-bloco="numero_3"><p class="cond" data-c="numero_3" style="margin:0;font-weight:700;font-size:40px;color:var(--azul)">5 anos</p><p data-c="numero_3_texto" style="margin:2px 0 0;font-size:16px;color:var(--texto2)">atendendo em Colatina</p></div>
@@ -82,7 +132,7 @@ body:not(.editando) [data-oculto]{display:none !important}
 <div class="wrap" style="padding-top:80px;padding-bottom:80px">
 <p class="rotulo" data-c="servicos_rotulo">Serviços</p>
 <h2 data-c="servicos_titulo" style="margin-bottom:40px;max-width:720px">Do diagnóstico à entrega, tudo no mesmo lugar</h2>
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2px;background:var(--linha);border:1px solid var(--linha)">
+<div class="carrossel carrossel-servicos" aria-label="Serviços" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:2px;background:var(--linha);border:1px solid var(--linha)">
 <div class="serv" data-bloco="servico_01" style="background:#fff;display:flex;flex-direction:column">
 <div style="background:#f1f3f5;border-bottom:1px solid #e3e6ea;height:170px;display:flex;align-items:center;justify-content:center;padding:18px"><svg viewBox="0 0 160 100" width="100%" height="100%" role="img" aria-label="Carro com chave de boca" xmlns="http://www.w3.org/2000/svg" style="display:block"><g fill="none" stroke="#16191d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(0,22)"><path d="M10 55 L14 42 Q18 35 30 34 L52 32 L68 18 Q72 15 80 15 L108 15 Q116 15 122 21 L134 32 L146 35 Q152 37 152 44 L152 55 L136 55 M112 55 L52 55 M28 55 L10 55"/><path d="M60 31 L71 21 L94 21 L94 31 Z M100 21 L111 21 L123 31 L100 31 Z"/><circle cx="40" cy="55" r="11"/><circle cx="124" cy="55" r="11"/><circle cx="40" cy="55" r="4"/><circle cx="124" cy="55" r="4"/><path d="M140 41 L150 42"/></g><g stroke="#174f94" stroke-width="2.5" stroke-linecap="round" fill="#fff"><path d="M128 26 L148 8" stroke-width="5"/><circle cx="125" cy="29" r="5.5"/><path d="M146 3 a6 6 0 1 0 6 8" fill="none"/></g></svg></div>
 <div style="padding:24px 28px 32px;display:flex;flex-direction:column;gap:10px">
@@ -131,7 +181,7 @@ body:not(.editando) [data-oculto]{display:none !important}
 </section>
 
 <section id="destaques" data-secao="destaques" style="background:var(--preto);color:#fff">
-<div class="wrap" style="padding-top:80px;padding-bottom:80px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:40px;align-items:start">
+<div class="wrap carrossel carrossel-destaques" aria-label="Destaques" style="padding-top:80px;padding-bottom:80px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:40px;align-items:start">
 <figure style="margin:0">
 <img data-img="destaque_1" src="media/oleo.jpg" alt="Óleo sendo colocado no motor: cuidado que seu carro merece, com tecnologia, qualidade e confiança" style="display:block;width:100%;height:auto;border-radius:4px" loading="lazy">
 </figure>
@@ -149,7 +199,7 @@ body:not(.editando) [data-oculto]{display:none !important}
 <div class="wrap" style="padding-top:80px;padding-bottom:80px">
 <p class="rotulo" data-c="etapas_rotulo">Como funciona</p>
 <h2 data-c="etapas_titulo" style="margin-bottom:40px;max-width:720px">Você sabe o que vai ser feito e quanto custa antes de começar</h2>
-<ol style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:32px">
+<ol class="carrossel carrossel-etapas" aria-label="Etapas do atendimento" style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:32px">
 <li data-bloco="etapa_1" style="display:flex;flex-direction:column;gap:10px;border-top:4px solid var(--preto);padding-top:18px">
 <svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><g fill="none" stroke="#174f94" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4 H24 L31 11 V36 H10 Z"/><path d="M24 4 V11 H31 M15 19 H26 M15 25 H26 M15 31 H22"/></g></svg>
 <p class="cond" style="margin:0;font-weight:700;font-size:15px;letter-spacing:.1em;text-transform:uppercase;color:var(--azul)" data-c="etapa_1_rotulo">Etapa 1</p>
@@ -257,6 +307,7 @@ Colatina/ES · CEP 29705-390</span></dd>
 </div>
 </footer>
 
-<script src="js/site.js?v=3" defer></script>
+<a class="zap-flutuante" href="https://wa.me/5527992470140?text=Ol%C3%A1%2C%20DTCar%21%20Vim%20pelo%20site%20e%20gostaria%20de%20um%20or%C3%A7amento.%0A%0AVe%C3%ADculo%20%28modelo%20e%20ano%29%3A%20%0APlaca%3A%20%0AO%20que%20est%C3%A1%20acontecendo%3A%20" data-href="zap" aria-label="Chamar a DTCar no WhatsApp"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 20.5l1.3-4A8.5 8.5 0 1 1 8 19.6z"></path><path d="M9 9.5c.5 2.2 2.3 4 4.5 4.6l1.2-1.1 1.8.8-.4 1.7c-3.6.2-7.6-3.8-7.4-7.4l1.7-.4.8 1.8z"></path></svg><span data-c="zap_flutuante">WhatsApp</span></a>
+<script src="js/site.js?v=4" defer></script>
 </body>
 </html>
