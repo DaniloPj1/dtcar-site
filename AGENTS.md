@@ -14,7 +14,7 @@ Tudo na tela e nos comentários em **português do Brasil**, linguagem simples.
 
 ## Conteúdo editável (atributos no index.html)
 - `data-c="chave"`: texto (sempre texto puro, nunca HTML). Mesma chave em dois lugares = mudam juntos.
-- `data-img="chave"`: foto. Só aceita a pasta `site` do Supabase ou `media/` do próprio site (`imgOk`).
+- `data-img="chave"`: foto. Só aceita a pasta `site` do Supabase ou `media/` do próprio site (`imgOk`). Enquadrar (`enq`): `object-position` x/y de 0 a 100 e "foto inteira" (tira o `max-height`).
 - `data-href="chave"`: link. Só `https://`, `mailto:`, `tel:` ou `#` (`linkOk`). `zap` = todos os botões de WhatsApp.
 - `data-secao="id"` (filhos de `<main id="secoes">`): sobe, desce, esconde. `data-bloco="id"`: item que pode ser escondido.
 - Tamanho do texto: P/M/G/GG relativo ao tamanho normal da tela (PC ou celular). Não pôr `!important` em `font-size` de texto editável.

@@ -105,6 +105,19 @@ with sync_playwright() as p:
     pg.fill(".ed-caixa input[type=url]", "javascript:alert(1)"); pg.click(".ed-caixa >> text=Aplicar"); pg.wait_for_timeout(300)
     ok(pg.locator(".ed-aviso.ed-erro").count() > 0 and "instagram" not in estado["rascunho"]["a"], "link javascript: recusado")
     pg.click(".ed-caixa >> text=Cancelar")
+    # enquadrar a foto da abertura
+    pg.locator('[data-img="abertura"]').click(); pg.click(".ed-painel >> text=Enquadrar")
+    pg.evaluate("""() => { const r = document.querySelectorAll('.ed-caixa input[type=range]'); r[0].value = 30; r[0].dispatchEvent(new Event('input')); r[1].value = 80; r[1].dispatchEvent(new Event('input')); }""")
+    if os.environ.get("FOTOS"): pg.screenshot(path="/tmp/enq.png")
+    ok(pg.evaluate("document.querySelector('[data-img=abertura]').style.objectPosition") == "30% 80%", "enquadrar muda a foto na hora")
+    pg.click(".ed-caixa button.ed-azul"); pg.wait_for_timeout(1800)
+    ok(estado["rascunho"]["enq"].get("abertura") == {"x": 30, "y": 80, "inteira": False}, "enquadramento no rascunho")
+    pg.locator('[data-img="abertura"]').click(); pg.click(".ed-painel >> text=Enquadrar")
+    pg.check(".ed-caixa input[type=checkbox]"); pg.click(".ed-caixa >> text=Cancelar"); pg.wait_for_timeout(300)
+    ok(pg.evaluate("document.querySelector('[data-img=abertura]').style.maxHeight") == "640px", "cancelar volta como estava")
+    pg.locator('[data-img="abertura"]').click(); pg.click(".ed-painel >> text=Enquadrar")
+    pg.check(".ed-caixa input[type=checkbox]"); pg.click(".ed-caixa button.ed-azul"); pg.wait_for_timeout(1800)
+    ok(estado["rascunho"]["enq"]["abertura"]["inteira"] is True, "foto inteira no rascunho")
     # foto
     pg.locator('[data-img="fachada"]').click()
     with pg.expect_file_chooser() as fc: pg.click(".ed-painel >> text=Trocar foto")
@@ -128,14 +141,16 @@ with sync_playwright() as p:
     ok(vp.text_content("h1").strip() == "Oficina de confiança", "visitante vê o título publicado")
     ok(vp.evaluate("getComputedStyle(document.querySelector('[data-c=numero_1]')).fontSize") == "40px" and vp.evaluate("getComputedStyle(document.querySelector('[data-c=servico_01_titulo]')).fontSize") == "26px", "publicar não encolhe os outros textos")
     ok(not vp.is_visible('[data-secao="numeros"]'), "seção escondida some para o visitante")
+    ok(vp.evaluate("[document.querySelector('[data-img=abertura]').style.objectPosition, document.querySelector('[data-img=abertura]').style.maxHeight]") == ["30% 80%", "none"], "visitante vê o enquadramento")
     ok(vp.evaluate("parseFloat(getComputedStyle(document.querySelector('h1')).fontSize)") > 50, "GG vale no celular (relativo ao tamanho do celular)")
     ok(vp.evaluate("document.querySelector('[contenteditable]')") is None and vp.locator(".ed-barra").count() == 0, "visitante não vê o editor")
     # conteúdo malicioso publicado por engano não vira HTML nem link perigoso
-    estado["publicacoes"].append({"dados": {"t": {"abertura_titulo": "<img src=x onerror=alert(1)>"}, "a": {"zap": "javascript:alert(1)"}, "img": {"logo": "https://mal.com/x.png"}}})
+    estado["publicacoes"].append({"dados": {"t": {"abertura_titulo": "<img src=x onerror=alert(1)>"}, "a": {"zap": "javascript:alert(1)"}, "img": {"logo": "https://mal.com/x.png"}, "enq": {"abertura": {"x": "1px;background:red", "y": 500}}}})
     vp.goto(base); vp.wait_for_timeout(800)
     ok(vp.locator("h1 img").count() == 0 and "<img" in vp.text_content("h1"), "texto entra como texto puro")
     ok(vp.get_attribute('[data-c="btn_topo"]', "href").startswith("https://wa.me/"), "link javascript: ignorado")
     ok("mal.com" not in (vp.get_attribute('[data-img="logo"]', "src") or ""), "foto de fora ignorada")
+    ok(vp.evaluate("document.querySelector('[data-img=abertura]').style.objectPosition") in ("", "50% 45%", "center 45%"), "enquadramento inválido ignorado")
     # erro ao ler o rascunho: editor não abre e não apaga
     estado["rascunho"] = {"t": {"abertura_titulo": "RASCUNHO IMPORTANTE"}}; estado["erro_rascunho"] = True
     e2 = b.new_context(); e2.route(re.compile(r"^https://"), falso); ep = e2.new_page(); ep.goto(base + "?editar"); ep.wait_for_selector(".ed-caixa")

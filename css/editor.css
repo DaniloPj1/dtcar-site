@@ -50,3 +50,10 @@ body.editando { padding-bottom: 76px; }
   padding: 12px 18px; border-radius: 4px; font: 600 15px Barlow, Arial, sans-serif; max-width: calc(100vw - 32px); }
 .ed-aviso.ed-erro { background: #b42318; }
 @media (max-width: 640px) { .ed-secao-barra { position: static; margin: 0; border-radius: 0; border-width: 0 0 1px; } .ed-barra { font-size: 14px; } .ed-barra .ed-btn { padding: 6px 10px; } body.editando { padding-bottom: 140px; } }
+
+/* Enquadrar: o fundo fica claro e a caixa vai para o canto, para ver a foto mudando atrás. */
+.ed-fundo.ed-fundo-claro { background: transparent; pointer-events: none; align-items: flex-end; justify-content: flex-end; padding: 16px 16px 90px; }
+.ed-fundo-claro .ed-caixa { pointer-events: auto; max-width: 380px; box-shadow: 0 2px 10px rgba(0, 0, 0, .3); }
+.ed-campo input[type=range] { min-height: 32px; padding: 0; border: 0; accent-color: #174f94; }
+.ed-check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 600; }
+.ed-check input { width: 22px; height: 22px; accent-color: #174f94; }
