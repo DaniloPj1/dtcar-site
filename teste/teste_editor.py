@@ -65,6 +65,7 @@ with sync_playwright() as p:
     # visitante sem nada publicado: conteúdo do HTML
     pg.goto(base); pg.wait_for_timeout(600)
     ok("Cuidado completo" in pg.text_content("h1"), "visitante vê o título padrão")
+    ok(pg.evaluate("[...document.querySelectorAll('.insta-item blockquote.instagram-media')].map(b=>b.dataset.instgrmPermalink)") == ["https://www.instagram.com/dtcar_centroautomotivo/reel/DTxcXvADjke/?utm_source=ig_embed","https://www.instagram.com/dtcar_centroautomotivo/reel/C0edyBzMJUL/?utm_source=ig_embed","https://www.instagram.com/dtcar_centroautomotivo/reel/Cg4I3PPF_Ph/?utm_source=ig_embed"], "Instagram: 3 posts montados")
     ok(pg.evaluate("[...document.querySelectorAll('.carrossel')].every(c => getComputedStyle(c).display === 'grid')") and not pg.is_visible(".zap-flutuante"), "PC: sem carrossel e sem botão flutuante")
     medir = "({h3: getComputedStyle(document.querySelector('[data-c=servico_01_titulo]')).fontSize, num: getComputedStyle(document.querySelector('[data-c=numero_1]')).fontSize, txt: getComputedStyle(document.querySelector('[data-c=abertura_texto]')).fontSize})"
     tam0 = pg.evaluate(medir)
@@ -149,10 +150,11 @@ with sync_playwright() as p:
     ok(vp.evaluate("parseFloat(getComputedStyle(document.querySelector('h1')).fontSize)") > 50, "GG vale no celular (relativo ao tamanho do celular)")
     ok(vp.evaluate("document.querySelector('[contenteditable]')") is None and vp.locator(".ed-barra").count() == 0, "visitante não vê o editor")
     # conteúdo malicioso publicado por engano não vira HTML nem link perigoso
-    estado["publicacoes"].append({"dados": {"t": {"abertura_titulo": "<img src=x onerror=alert(1)>"}, "a": {"zap": "javascript:alert(1)"}, "img": {"logo": "https://mal.com/x.png"}, "enq": {"abertura": {"x": "1px;background:red", "y": 500}}}})
+    estado["publicacoes"].append({"dados": {"t": {"abertura_titulo": "<img src=x onerror=alert(1)>"}, "a": {"zap": "javascript:alert(1)", "instagram_1": "https://mal.com/p/abc/"}, "img": {"logo": "https://mal.com/x.png"}, "enq": {"abertura": {"x": "1px;background:red", "y": 500}}}})
     vp.goto(base); vp.wait_for_timeout(800)
     ok(vp.locator("h1 img").count() == 0 and "<img" in vp.text_content("h1"), "texto entra como texto puro")
     ok(vp.get_attribute('[data-c="btn_topo"]', "href").startswith("https://wa.me/"), "link javascript: ignorado")
+    ok(vp.evaluate("document.querySelector('[data-bloco=instagram_1] .insta-embed').textContent") == "Post indisponível.", "Instagram: link que não é post não vira embed")
     ok("mal.com" not in (vp.get_attribute('[data-img="logo"]', "src") or ""), "foto de fora ignorada")
     ok(vp.evaluate("document.querySelector('[data-img=abertura]').style.objectPosition") in ("", "50% 45%", "center 45%"), "enquadramento inválido ignorado")
     # erro ao ler o rascunho: editor não abre e não apaga
