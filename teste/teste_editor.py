@@ -65,7 +65,7 @@ with sync_playwright() as p:
     # visitante sem nada publicado: conteúdo do HTML
     pg.goto(base); pg.wait_for_timeout(600)
     ok("Cuidado completo" in pg.text_content("h1"), "visitante vê o título padrão")
-    ok(pg.evaluate("[...document.querySelectorAll('.insta-item blockquote.instagram-media')].map(b=>b.dataset.instgrmPermalink)") == ["https://www.instagram.com/dtcar_centroautomotivo/reel/DTxcXvADjke/?utm_source=ig_embed","https://www.instagram.com/dtcar_centroautomotivo/reel/C0edyBzMJUL/?utm_source=ig_embed","https://www.instagram.com/dtcar_centroautomotivo/reel/Cg4I3PPF_Ph/?utm_source=ig_embed"], "Instagram: 3 posts montados")
+    ok(pg.evaluate("[...document.querySelectorAll('.insta-item iframe')].map(f=>f.getAttribute('src'))") == ["https://www.instagram.com/p/DTxcXvADjke/embed/","https://www.instagram.com/p/C0edyBzMJUL/embed/","https://www.instagram.com/p/Cg4I3PPF_Ph/embed/"], "Instagram: 3 posts montados")
     ok(pg.evaluate("[...document.querySelectorAll('.carrossel')].every(c => getComputedStyle(c).display === 'grid')") and not pg.is_visible(".zap-flutuante"), "PC: sem carrossel e sem botão flutuante")
     medir = "({h3: getComputedStyle(document.querySelector('[data-c=servico_01_titulo]')).fontSize, num: getComputedStyle(document.querySelector('[data-c=numero_1]')).fontSize, txt: getComputedStyle(document.querySelector('[data-c=abertura_texto]')).fontSize})"
     tam0 = pg.evaluate(medir)
@@ -141,6 +141,7 @@ with sync_playwright() as p:
     v = b.new_context(viewport={"width": 390, "height": 800}); v.route(re.compile(r"^https://"), falso)
     vp = v.new_page(); vp.goto(base); vp.wait_for_timeout(800)
     ok(vp.text_content("h1").strip() == "Oficina de confiança", "visitante vê o título publicado")
+    ok(vp.evaluate("""(() => { const o = [...document.querySelectorAll('#secoes > [data-secao]')].map(s => s.dataset.secao); return o.indexOf('instagram') === o.indexOf('oficina') + 1; })()"""), "seção nova entra no lugar dela, não no fim")
     ok(vp.evaluate("getComputedStyle(document.querySelector('[data-c=numero_1]')).fontSize") == "40px" and vp.evaluate("getComputedStyle(document.querySelector('[data-c=servico_01_titulo]')).fontSize") == "26px", "publicar não encolhe os outros textos")
     ok(not vp.is_visible('[data-secao="numeros"]'), "seção escondida some para o visitante")
     ok(vp.evaluate("[...document.querySelectorAll('.carrossel')].every(c => getComputedStyle(c).display === 'flex' && getComputedStyle(c).overflowX === 'auto')"), "celular: grupos em carrossel")

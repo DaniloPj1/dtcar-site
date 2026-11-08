@@ -43,6 +43,18 @@
     document.querySelectorAll("[data-c]").forEach(function (el) { ajustarTamanho(el, s[el.getAttribute("data-c")]); });
   }
 
+  // Seção nova no HTML (que não estava na ordem publicada) entra logo depois da seção que vem antes dela no HTML.
+  function completarOrdem(ordem, original) {
+    ordem = ordem.filter(function (id, i, l) { return original.indexOf(id) >= 0 && l.indexOf(id) === i; });
+    original.forEach(function (id, i) {
+      if (ordem.indexOf(id) >= 0) return;
+      var pos = 0;
+      for (var j = i - 1; j >= 0; j--) { var k = ordem.indexOf(original[j]); if (k >= 0) { pos = k + 1; break; } }
+      ordem.splice(pos, 0, id);
+    });
+    return ordem;
+  }
+
   function aplicar(d) {
     d = obj(d);
     guardarOriginais();
@@ -73,7 +85,7 @@
     var main = document.getElementById("secoes");
     if (main) {
       var ordem = (Array.isArray(d.ordem) ? d.ordem : []).filter(function (id) { return ordemOriginal.indexOf(id) >= 0; });
-      ordemOriginal.forEach(function (id) { if (ordem.indexOf(id) < 0) ordem.push(id); });   // seção nova no HTML entra no fim
+      ordem = completarOrdem(ordem, ordemOriginal);
       ordem.forEach(function (id) {
         var sec = null;
         Array.prototype.some.call(main.children, function (c) { if (c.getAttribute("data-secao") === id) { sec = c; return true; } return false; });
@@ -146,46 +158,30 @@
   }
 
   // Posts do Instagram (seção "instagram"): o endereço vem do link "Ver no Instagram" de cada item (editável no editor).
-  // O script oficial do Instagram só é carregado quando a seção chega perto da tela.
-  var POST_INSTA = /^https:\/\/www\.instagram\.com\/(?:[\w.]+\/)?(?:p|reel)\/[\w-]+\/?$/;
-  var instaPronto = false, instaVisto = false;
+  // Usa o quadro oficial do Instagram (instagram.com/p/<código>/embed/), carregado só quando chega perto da tela.
+  var POST_INSTA = /^https:\/\/www\.instagram\.com\/(?:[\w.]+\/)?(?:p|reel)\/([\w-]+)\/?$/;
   function montarInstagram() {
-    var itens = document.querySelectorAll(".insta-item");
-    if (!itens.length) return;
-    itens.forEach(function (item) {
+    document.querySelectorAll(".insta-item").forEach(function (item) {
       var a = item.querySelector("a[data-href]"), caixa = item.querySelector(".insta-embed");
       var url = a ? a.getAttribute("href") : "";
       if (!caixa || caixa.getAttribute("data-url") === url) return;
       caixa.setAttribute("data-url", url);
       caixa.textContent = "";
-      if (!POST_INSTA.test(url)) { caixa.textContent = "Post indisponível."; return; }
-      var bq = document.createElement("blockquote");
-      bq.className = "instagram-media";
-      bq.setAttribute("data-instgrm-permalink", url.replace(/\/?$/, "/") + "?utm_source=ig_embed");
-      bq.setAttribute("data-instgrm-version", "14");
-      bq.style.cssText = "margin:0;width:100%;min-width:0;max-width:540px;border:0";
-      var l = document.createElement("a"); l.href = url; l.textContent = "Ver este post no Instagram"; bq.appendChild(l);
-      caixa.style.display = "block"; caixa.style.minHeight = "0"; caixa.style.padding = "0"; caixa.style.border = "0";
-      caixa.appendChild(bq);
+      var m = POST_INSTA.exec(url);
+      if (!m) { caixa.textContent = "Post indisponível."; return; }
+      var f = document.createElement("iframe");
+      f.src = "https://www.instagram.com/p/" + m[1] + "/embed/";
+      f.title = "Post da DTCar no Instagram";
+      f.loading = "lazy";
+      f.setAttribute("scrolling", "no");
+      f.setAttribute("allowtransparency", "true");
+      f.style.cssText = "display:block;width:100%;height:560px;border:0;background:#fff";
+      caixa.style.display = "block"; caixa.style.padding = "0"; caixa.style.minHeight = "0";
+      caixa.appendChild(f);
     });
-    if (instaPronto && window.instgrm) window.instgrm.Embeds.process();
-    else if (!instaVisto) {
-      instaVisto = true;
-      var sec = document.getElementById("instagram");
-      var carregar = function () {
-        if (instaPronto) return; instaPronto = true;
-        var sc = document.createElement("script"); sc.async = true; sc.src = "https://www.instagram.com/embed.js";
-        sc.onload = function () { if (window.instgrm) window.instgrm.Embeds.process(); };
-        document.body.appendChild(sc);
-      };
-      if (sec && "IntersectionObserver" in window) {
-        var ob = new IntersectionObserver(function (es) { if (es.some(function (e) { return e.isIntersecting; })) { ob.disconnect(); carregar(); } }, { rootMargin: "600px" });
-        ob.observe(sec);
-      } else carregar();
-    }
   }
 
-  window.DTSite = { CFG: CFG, TAM: TAM, aplicar: aplicar, aplicarTamanhos: aplicarTamanhos, linkOk: linkOk, imgOk: imgOk, atual: {}, versao: "5" };
+  window.DTSite = { CFG: CFG, TAM: TAM, aplicar: aplicar, completarOrdem: completarOrdem, aplicarTamanhos: aplicarTamanhos, linkOk: linkOk, imgOk: imgOk, atual: {}, versao: "6" };
   guardarOriginais();
   montarInstagram();
   montarPontos();
